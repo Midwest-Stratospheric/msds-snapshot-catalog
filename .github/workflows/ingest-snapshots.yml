@@ -1,0 +1,174 @@
+name: Ingest Snapshots
+
+# Pulls public latest products from UOGW + GIR into dated folders.
+# Append-only: never deletes prior catalog/YYYY-MM-DD trees.
+
+on:
+  schedule:
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snapshot-catalog-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ingest dated snapshots (append-only)
+        run: |
+          set -euo pipefail
+          DATE=$(date -u +%Y-%m-%d)
+          YEAR=$(date -u +%Y)
+          STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          mkdir -p "catalog/uogw/${DATE}" "catalog/gir/${DATE}" index
+
+          download() {
+            # download <url> <outpath>
+            local url="$1" out="$2"
+            if curl -fsSL --retry 3 --retry-delay 2 -o "$out" "$url"; then
+              echo "OK  $out"
+              return 0
+            else
+              echo "MISS $url"
+              rm -f "$out"
+              return 1
+            fi
+          }
+
+          RAW_UOGW="https://raw.githubusercontent.com/Midwest-Stratospheric/Unified-Open-Global-Weather/main"
+          RAW_GIR="https://raw.githubusercontent.com/Midwest-Stratospheric/aerostratospheric-defense-gir/main"
+
+          echo "=== UOGW ${DATE} ==="
+          U_OK=0
+          for pair in \
+            "data/latest/research-summary.json:research-summary.json" \
+            "data/latest/science-package.json:science-package.json" \
+            "data/latest/summary.json:summary.json" \
+            "data/latest/anomaly-report.json:anomaly-report.json" \
+            "data/latest/scientific_scorecard_latest.json:scientific_scorecard.json" \
+            "data/latest/change_detection_latest.json:change_detection.json" \
+            "data/latest/layer_coverage_latest.json:layer_coverage.json" \
+            "data/latest/fair_package_card_latest.json:fair_package_card.json" \
+            "data/latest/daily-climate.json:daily-climate.json" \
+            "reports/latest.md:report-latest.md" \
+            "reports/scientific/latest.md:scientific-digest.md"
+          do
+            SRC="${pair%%:*}"
+            DST="${pair##*:}"
+            if download "${RAW_UOGW}/${SRC}" "catalog/uogw/${DATE}/${DST}"; then U_OK=$((U_OK+1)); fi
+          done
+
+          # charts (optional — may be many; grab a few known names if present)
+          mkdir -p "catalog/uogw/${DATE}/charts"
+          for chart in anomaly_counts_7d.png surface_temp_spread.png casey_temp_series.png layer_status.png; do
+            download "${RAW_UOGW}/visuals/latest/${chart}" "catalog/uogw/${DATE}/charts/${chart}" || true
+          done
+
+          echo "=== GIR ${DATE} ==="
+          G_OK=0
+          for pair in \
+            "data/manifests/manifest_latest.json:manifest.json" \
+            "data/quality/scientific_scorecard_latest.json:scientific_scorecard.json" \
+            "data/quality/change_detection_latest.json:change_detection.json" \
+            "data/quality/coverage_report_latest.json:coverage_report.json" \
+            "data/quality/fair_package_card_latest.json:fair_package_card.json" \
+            "data/status/us_open_conditions_latest.json:us_open_conditions.json" \
+            "data/anomalies/uogw_anomalies_latest.json:uogw_anomalies.json" \
+            "reports/latest.md:exec-summary.md" \
+            "reports/scientific/latest.md:scientific-digest.md"
+          do
+            SRC="${pair%%:*}"
+            DST="${pair##*:}"
+            if download "${RAW_GIR}/${SRC}" "catalog/gir/${DATE}/${DST}"; then G_OK=$((G_OK+1)); fi
+          done
+
+          mkdir -p "catalog/gir/${DATE}/charts"
+          # copy any svg listed if reachable (best-effort)
+          download "${RAW_GIR}/docs/GRAPHS.md" "catalog/gir/${DATE}/GRAPHS.md" || true
+
+          # sidecar meta for the day
+          python3 - << PY
+          import json, os
+          from datetime import datetime, timezone
+          date = "${DATE}"
+          stamp = "${STAMP}"
+          meta = {
+            "schema": "msds.snapshot_day.v1",
+            "date_utc": date,
+            "ingested_at_utc": stamp,
+            "sources": {
+              "uogw": {
+                "repo": "Midwest-Stratospheric/Unified-Open-Global-Weather",
+                "files_ok": ${U_OK},
+                "path": f"catalog/uogw/{date}/",
+              },
+              "gir": {
+                "repo": "Midwest-Stratospheric/aerostratospheric-defense-gir",
+                "files_ok": ${G_OK},
+                "path": f"catalog/gir/{date}/",
+              },
+            },
+            "policy": "append-only; prior days are not deleted by this workflow",
+          }
+          os.makedirs(f"catalog/uogw/{date}", exist_ok=True)
+          os.makedirs(f"catalog/gir/{date}", exist_ok=True)
+          with open(f"catalog/uogw/{date}/_meta.json", "w") as f:
+              json.dump({**meta, "source": "uogw"}, f, indent=2)
+          with open(f"catalog/gir/{date}/_meta.json", "w") as f:
+              json.dump({**meta, "source": "gir"}, f, indent=2)
+
+          # year index
+          year = date[:4]
+          idx_path = f"index/{year}.json"
+          try:
+              with open(idx_path) as f:
+                  year_idx = json.load(f)
+          except Exception:
+              year_idx = {"year": year, "days": []}
+          days = set(year_idx.get("days") or [])
+          days.add(date)
+          year_idx["days"] = sorted(days)
+          year_idx["updated_at_utc"] = stamp
+          os.makedirs("index", exist_ok=True)
+          with open(idx_path, "w") as f:
+              json.dump(year_idx, f, indent=2)
+
+          latest = {
+            "schema": "msds.snapshot_index_latest.v1",
+            "updated_at_utc": stamp,
+            "uogw_latest_date": date,
+            "gir_latest_date": date,
+            "uogw_path": f"catalog/uogw/{date}/",
+            "gir_path": f"catalog/gir/{date}/",
+            "uogw_files_ok": ${U_OK},
+            "gir_files_ok": ${G_OK},
+          }
+          with open("index/latest.json", "w") as f:
+              json.dump(latest, f, indent=2)
+          print("INDEX", json.dumps(latest))
+          PY
+
+          echo "UOGW files_ok=${U_OK}  GIR files_ok=${G_OK}"
+
+      - name: Commit append-only snapshot
+        run: |
+          set -e
+          git config user.name "msds-catalog-bot"
+          git config user.email "bot@midwestsds.com"
+          # Never delete: only add/update index + today's folders
+          git add catalog index README.md || true
+          if git diff --staged --quiet; then
+            echo "No catalog changes"
+            exit 0
+          fi
+          git commit -m "catalog: ingest UOGW+GIR snapshots $(date -u +%Y-%m-%d) (append-only)"
+          git push origin HEAD:main
