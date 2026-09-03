@@ -1,0 +1,19 @@
+{
+  "schema": "msds.snapshot_day.v1",
+  "date_utc": "2026-09-03",
+  "ingested_at_utc": "2026-09-03T14:02:21Z",
+  "sources": {
+    "uogw": {
+      "repo": "Midwest-Stratospheric/Unified-Open-Global-Weather",
+      "files_ok": 6,
+      "path": "catalog/uogw/2026-09-03/"
+    },
+    "gir": {
+      "repo": "Midwest-Stratospheric/aerostratospheric-defense-gir",
+      "files_ok": 9,
+      "path": "catalog/gir/2026-09-03/"
+    }
+  },
+  "policy": "append-only; prior days are not deleted by this workflow",
+  "source": "gir"
+}
