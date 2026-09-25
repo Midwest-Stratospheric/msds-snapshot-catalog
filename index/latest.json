@@ -1,10 +1,10 @@
 {
   "schema": "msds.snapshot_index_latest.v1",
-  "updated_at_utc": "2026-09-24T14:34:04Z",
-  "uogw_latest_date": "2026-09-24",
-  "gir_latest_date": "2026-09-24",
-  "uogw_path": "catalog/uogw/2026-09-24/",
-  "gir_path": "catalog/gir/2026-09-24/",
+  "updated_at_utc": "2026-09-25T14:54:28Z",
+  "uogw_latest_date": "2026-09-25",
+  "gir_latest_date": "2026-09-25",
+  "uogw_path": "catalog/uogw/2026-09-25/",
+  "gir_path": "catalog/gir/2026-09-25/",
   "uogw_files_ok": 6,
   "gir_files_ok": 9
 }
