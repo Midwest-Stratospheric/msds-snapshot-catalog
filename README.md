@@ -40,6 +40,10 @@ index/
 - **No automatic deletion** of prior dated folders
 - Upstream licenses stay with source agencies and original repos
 
+## Collaboration
+
+Researchers who need a stable, dated history of UOGW packages for reproducible work are welcome to cite this catalog and to reach out about data collaboration: email space@aerostratospheric.com or book a 15 minute intro at https://calendly.com/aerostratospheric/15min. The live view of the same commons is xDataHub, our public open atmospheric data dashboard: https://www.midwestsds.com/msds-data-hub.html
+
 ## Curator
 
 Midwest Stratospheric Data Systems / Aerostratospheric  
