@@ -1,4 +1,4 @@
-# MSDS Snapshot Catalog
+# Aerostratospheric Snapshot Catalog
 
 **Permanent, append-only catalog of open-tier scientific snapshots** from:
 
@@ -52,5 +52,5 @@ Researchers who need a stable, dated history of UOGW packages for reproducible w
 
 ## Curator
 
-Midwest Stratospheric Data Systems / Aerostratospheric  
+Aerostratospheric / Aerostratospheric  
 https://midwestsds.com/
