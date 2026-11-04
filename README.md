@@ -7,6 +7,12 @@
 | [Unified-Open-Global-Weather](https://github.com/Midwest-Stratospheric/Unified-Open-Global-Weather) | Research summary, science package, scorecard, coverage, FAIR card, anomaly report, reports, charts |
 | [aerostratospheric-defense-gir](https://github.com/Midwest-Stratospheric/aerostratospheric-defense-gir) | Manifest, exec summary, scientific scorecard, change detection, coverage, FAIR card |
 
+## Operation Canis Major
+
+<img src="https://www.midwestsds.com/images/operation-canis-major-patch.png" alt="Operation Canis Major patch" width="120" align="right">
+
+This project is part of [Operation Canis Major](https://www.midwestsds.com/operation-canis-major.html), often called Project Canis: Aerostratospheric's mission objective to provide open stratospheric and atmospheric research and data, unrestricted, to the public. Learn more: https://www.midwestsds.com/operation-canis-major.html
+
 ## Design
 
 - Operational repos keep overwriting `data/latest/` for convenience.
